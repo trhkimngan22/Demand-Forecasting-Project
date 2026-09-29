@@ -1,0 +1,18 @@
+# Paths are relative to the repository root, not the shell working directory.
+train_path: data/train.parquet
+eval_path: data/eval.parquet
+output_dir: saved_models/standalone
+forecast_horizon: 7
+lags: [1, 7, 14, 21, 28]
+rolling_windows: [7, 14]
+seed: 42
+models: [lightgbm]
+# Set to a positive integer for a smaller run; selects matching series in both splits.
+max_series: null
+model_params:
+  linear_regression: {}
+  ridge: {alpha: 1.0}
+  lasso: {alpha: 1.0}
+  xgboost: {n_estimators: 100, max_depth: 3, learning_rate: 0.1}
+  lightgbm: {n_estimators: 100, max_depth: 3, learning_rate: 0.1, verbosity: -1}
+  catboost: {iterations: 100, depth: 3, learning_rate: 0.1, verbose: false}
