@@ -4,7 +4,7 @@ A retail demand forecasting project for individual product–store pairs, using 
 
 **LightGBM** achieves the lowest WMAPE in the saved results and is selected for the API demo. The original experiments are preserved in [DemandForecastingProject.ipynb](src/DemandForecastingProject.ipynb). A standalone tabular pipeline and API are also available below.
 
-## Repository Structure
+## Repository structure
 
 ```text
 Demand-Forecasting-Project/
@@ -14,8 +14,8 @@ Demand-Forecasting-Project/
 ├── configs/default.yaml
 ├── data/
 │   ├── README.md
-│   ├── train.parquet          # Local download.
-│   └── eval.parquet           # Local download. 
+│   ├── train.parquet          
+│   └── eval.parquet            
 ├── src/
 │   ├── __init__.py
 │   ├── features.py
@@ -34,11 +34,11 @@ Demand-Forecasting-Project/
 
 Generated models, virtual environments and caches are excluded from Git. See [data/README.md](data/README.md) for dataset preparation.
 
-## Standalone Training and API
+## Standalone training and API
 
 The standalone pipeline supports Linear Regression, Ridge, Lasso, XGBoost, LightGBM, and CatBoost. LightGBM is the default. LSTM, TimesFM, EDA, and the original MLflow experiment remain in the research notebook.
 
-### Install and Train
+### Install and train
 
 Use Python 3.11 or 3.12. From the repository root:
 
@@ -49,11 +49,11 @@ python -m pip install -r requirements.txt
 python -m src.train --config configs/default.yaml --max-series 20
 ```
 
-Remove `--max-series 20` to train on all series. Edit `models` in [configs/default.yaml](configs/default.yaml) to compare multiple tabular models. Data and output paths in the configuration are resolved relative to the repository root. `requirements.txt` pins direct dependencies installed for the Python 3.11 macOS ARM64 validation environment; transitive dependencies are not fully locked. The notebook needs the additional packages listed later. On macOS, LightGBM may require the OpenMP runtime (`brew install libomp`).
+Remove `--max-series 20` to train on all series. Edit `models` in [configs/default.yaml](configs/default.yaml) to compare multiple tabular models. Data and output paths in the configuration are resolved relative to the repository root.
 
 The standalone workflow uses shared calendar-date features, excludes target-date stockout status, and fits preprocessing only on training rows. All selected models are evaluated on the same rows with complete historical features. Missing numeric covariates are imputed from training medians, categorical variables are one-hot encoded with support for unseen categories. This preprocessing differs from the notebook, so its saved leaderboard does not describe standalone results.
 
-Evaluation uses a rolling forecast origin at `target_date - forecast_horizon`. For evaluation periods longer than the horizon, earlier evaluation observations can become available history. This is not a fixed-origin forecast of an arbitrary length. Historical features require complete daily windows; rows without enough history are excluded and retained row counts are recorded in the metrics.
+Evaluation uses a rolling forecast origin at `target_date - forecast_horizon`. For evaluation periods longer than the horizon, earlier evaluation observations can become available history. This is not a fixed-origin forecast of an arbitrary length. Historical features require complete daily windows, rows without enough history are excluded and retained row counts are recorded in the metrics.
 
 Training writes:
 
@@ -76,7 +76,7 @@ After training LightGBM:
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/docs` for the interactive schema. `GET /health` reports the loaded model; `POST /predict` returns one prediction for the requested date. Set `MODEL_PATH` to a different standalone `artifact.joblib` if needed. The server fails at startup when the artifact is missing or incompatible.
+Open `http://127.0.0.1:8000/docs` for the interactive schema. `GET /health` reports the loaded model. `POST /predict` returns one prediction for the requested date. Set `MODEL_PATH` to a different standalone `artifact.joblib` if needed. The server fails at startup when the artifact is missing or incompatible.
 
 Generate a complete example request from the repository root:
 
@@ -111,9 +111,9 @@ python -m src.predict \
   --request /tmp/forecast-request.json
 ```
 
-The sample history is synthetic. Replace it and the covariates with actual inputs. With the default configuration, history must cover every day from **34 days before the forecast date through 7 days before it**, inclusive: 28 observations. Older history is accepted. Observations after the forecast origin are rejected. Unlike the notebook request, each historical item needs only `date` and `units_ordered`. Future promotions and weather must be supplied using information available at the forecast origin. Schema errors return HTTP 422; invalid history returns HTTP 400.
+The sample history is synthetic. Replace it and the covariates with actual inputs. With the default configuration, history must cover every day from **34 days before the forecast date through 7 days before it**, inclusive: 28 observations. Older history is accepted. Observations after the forecast origin are rejected. Unlike the notebook request, each historical item needs only `date` and `units_ordered`. Future promotions and weather must be supplied using information available at the forecast origin. Schema errors return HTTP 422, invalid history returns HTTP 400.
 
-### Run Tests
+### Run tests
 
 ```bash
 python -m pytest -q
@@ -121,7 +121,7 @@ python -m pytest -q
 
 Tests cover calendar offsets, rolling statistics, gaps, series isolation, future-target leakage, training/inference feature equality, model serialization, and API validation. They also exercise all six supported estimators and a Parquet-to-artifact training run. Tests use synthetic data, so no dataset download or pretrained checkpoint is required.
 
-## Dataset and Forecasting Task
+## Dataset and forecasting task
 
 The notebook loads the dataset with `load_dataset("Dingdong-Inc/FreshRetailNet-50K")` and uses its existing `train` and `eval` splits directly. The saved output reports **4,500,000 training rows**, **350,000 evaluation rows**, and approximately **50,000 product–store time series**.
 
@@ -137,9 +137,9 @@ The notebook loads the dataset with `load_dataset("Dingdong-Inc/FreshRetailNet-5
 | Weather | Temperature, humidity, precipitation, and wind |
 | Stockout status | `stockout_flag`, derived from `stock_hour6_22_cnt` |
 
-`units_ordered` is the internal name for `sale_amount`, which contains fractional values. The notebook predicts observed sales; it does not implement a separate step to recover demand obscured by stockouts.
+`units_ordered` is the internal name for `sale_amount`, which contains fractional values. The notebook predicts observed sales.
 
-## Workflow and Models
+## Workflow and models
 
 1. Load data, standardize column names, and generate calendar features.
 2. Check missing values and compute average autocorrelation across series.
@@ -156,7 +156,7 @@ The notebook loads the dataset with `load_dataset("Dingdong-Inc/FreshRetailNet-5
 | Deep learning | Two LSTM layers with 64 and 32 units, dropout of 0.2, trained for 3 epochs |
 | Foundation model | Pretrained TimesFM 2.5 using `google/timesfm-2.5-200m-pytorch`, without fine-tuning |
 
-### Temporal Configuration
+### Temporal configuration
 
 | Parameter | Default value |
 | --- | --- |
@@ -169,9 +169,9 @@ The notebook loads the dataset with `load_dataset("Dingdong-Inc/FreshRetailNet-5
 
 For tabular models, `lag_k` is computed with `shift(k + FORECAST_HORIZON - 1)`. With a horizon of 7, `lag_1` uses the observation 7 rows earlier and `lag_28` uses the observation 34 rows earlier within the same series. Rolling means and standard deviations are computed after shifting the target by 7 rows. These row offsets correspond to days when each series contains continuous daily observations.
 
-## Saved Results
+## Saved results
 
-The following values come from the notebook's saved **Inference demo** leaderboard. Training and evaluation were not rerun to prepare this README. Inference time measures evaluation processing within the corresponding loop, rather than the latency of a single API request.
+The following values come from the notebook's saved **Inference demo** leaderboard. Inference time measures evaluation processing within the corresponding loop, rather than the latency of a single API request.
 
 | Model | WMAPE (%) | RMSE | Inference time (seconds) |
 | --- | ---: | ---: | ---: |
@@ -191,9 +191,9 @@ LightGBM has the lowest errors in this table and substantially lower inference t
 
 **Interpretation limits:** Evaluation is not fully aligned across model families. Tabular models use features shifted by the forecast horizon, TimesFM predicts the entire evaluation segment from training history, LSTM appends only 30 historical days, so a horizon of 7 excludes early evaluation dates with insufficient context. Tabular models also use target-date `stockout_flag` and evaluation-set weather and promotion variables. Their availability at forecast time must be established before treating these results as evidence of deployment performance.
 
-## Running the Original Notebook
+## Running the notebook
 
-### 1. Set Up the Environment
+### 1. Set up the environment
 
 The notebook metadata records Python **3.12.13**. From the repository root, create a Python 3.12 environment:
 
@@ -212,9 +212,9 @@ python -m jupyterlab
 
 This dependency list covers the notebook's imports and Parquet loading. Versions are not pinned, and installation has not been verified across operating systems. TimesFM requires a version exposing `TimesFM_2p5_200M_torch` and `ForecastConfig`, as used in the notebook.
 
-The dataset contains millions of rows, and processing creates additional copies in memory. Running the full workflow, particularly LSTM and TimesFM, can require substantial RAM and execution time. Downloading the dataset or TimesFM checkpoint requires Internet access.
+The dataset contains millions of rows, and processing creates additional copies in memory. Running the full workflow, particularly LSTM and TimesFM, can require substantial RAM and execution time.
 
-### 2. Choose a Data Source
+### 2. Choose a data source
 
 **Default:** keep the cells that call `load_dataset(...)` and convert both splits to pandas.
 
@@ -231,13 +231,13 @@ df_train = pd.read_parquet(repo_root / "data" / "train.parquet")
 df_eval = pd.read_parquet(repo_root / "data" / "eval.parquet")
 ```
 
-### 3. Run the Notebook
+### 3. Run the notebook
 
 Open `src/DemandForecastingProject.ipynb`, select the **Python (Demand Forecasting)** kernel, and execute the cells in order. You can skip the `!pip install ...` cell if the dependencies are already installed in the environment above.
 
 To try LightGBM first, set `candidate_models = ["lightgbm"]` in **both locations**: before the training loop and in the **Inference demo** section. Changing only the training list leaves the reload loop attempting to load models that have not been saved.
 
-### 4. Inspect the Outputs
+### 4. Inspect the outputs
 
 ```text
 saved_models/
@@ -257,7 +257,7 @@ This tree illustrates the artifact types. Other tabular models each receive thei
 
 MLflow creates the `Demand_Forecasting_Project` experiment and records parameters through `mlflow.log_param` and `mlflow.log_params`.
 
-## Original Notebook FastAPI Demo
+## Original notebook FastAPI demo
 
 The application is defined inside the notebook and loads LightGBM from `saved_models/lightgbm/`.
 
@@ -271,5 +271,3 @@ A prediction request includes product/store information, `forecast_date`, promot
 The response contains `product_id`, `store_id`, `forecast_date`, `forecast_horizon`, and `predicted_units`. The endpoint returns **one prediction for the requested date**, rather than an array of seven daily forecasts.
 
 The existing test cell uses `TestClient(app)` to call `GET /health`, with a saved HTTP 200 response. The notebook's `/predict` JSON example contains abbreviated history and cannot be submitted as a complete request. This describes the original notebook demo. The standalone `app/main.py` application and `/predict` tests are documented above.
-
-The original notebook's API feature generation appends one future row to the history and applies shifts by row position. Before deployment, verify consistency with training features when dates are missing between the history and forecast date, as well as the handling of unknown `stockout_flag` values.
